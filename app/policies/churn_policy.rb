@@ -2,7 +2,7 @@
 
 class ChurnPolicy < ApplicationPolicy
   def index?
-    return false unless Feature.active?(:churn_analytics, seller)
+    return false if !Feature.active?(:churn_analytics, seller)
 
     user.role_admin_for?(seller) ||
     user.role_marketing_for?(seller) ||

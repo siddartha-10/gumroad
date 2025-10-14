@@ -70,7 +70,7 @@ class AnalyticsController < Sellers::BaseController
       end_date: @end_date,
       max_window_days: CreatorAnalytics::Churn::WINDOW
     )
-    unless validator.valid?
+    if !validator.valid?
       render json: { errors: validator.errors }, status: :unprocessable_entity and return
     end
 

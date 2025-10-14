@@ -63,16 +63,16 @@ class AnalyticsController < Sellers::BaseController
   def churn_data
     authorize :churn
 
-    aggregate_by = CreatorAnalytics::Churn::AGGREGATE_OPTIONS.key?(params[:aggregate_by]) ? params[:aggregate_by] : CreatorAnalytics::Churn::AGGREGATE_BY_DAY
-
-    validator = CreatorAnalytics::DateRangeValidator.new(
-      start_date: @start_date,
-      end_date: @end_date,
-      max_window_days: CreatorAnalytics::Churn::WINDOW
-    )
-    if !validator.valid?
-      render json: { errors: validator.errors }, status: :unprocessable_entity and return
+    # Enforce maximum window size for churn analytics
+    max_window_days = CreatorAnalytics::Churn::WINDOW
+    days = (@end_date - @start_date).to_i
+    if days >= max_window_days
+      render json: {
+        errors: { base: ["Date range cannot exceed #{max_window_days} days"] }
+      }, status: :unprocessable_entity and return
     end
+
+    aggregate_by = CreatorAnalytics::Churn::AGGREGATE_OPTIONS.key?(params[:aggregate_by]) ? params[:aggregate_by] : CreatorAnalytics::Churn::AGGREGATE_BY_DAY
 
     raw = CreatorAnalytics::Churn.new(
       seller: current_seller,

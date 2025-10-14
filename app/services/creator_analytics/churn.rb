@@ -132,16 +132,22 @@ class CreatorAnalytics::Churn
       "seller_daily_churn_metrics:#{@seller.id}:v1:#{since}:#{to}"
     end
 
-    def compute_daily_series_for(since:, to:)
-      new_by_day = Hash.new(0)
-      churn_by_day = Hash.new(0)
-      churn_mrr_by_day = Hash.new(0)
-
+    def base_subscription_scope
       subs = Subscription.where(seller: @seller)
       if @product_external_ids
         link_ids = Link.where(user: @seller, unique_permalink: @product_external_ids).pluck(:id)
         subs = subs.where(link_id: link_ids) if link_ids.any?
       end
+      subs
+    end
+
+    def compute_daily_series_for(since:, to:)
+      new_by_day = Hash.new(0)
+      churn_by_day = Hash.new(0)
+      churn_mrr_by_day = Hash.new(0)
+      earliest_date = since - 30.days
+
+      subs = base_subscription_scope
 
       base_active = subs.where("created_at < ?", since)
                         .where("deactivated_at IS NULL OR deactivated_at >= ?", since)
@@ -152,9 +158,9 @@ class CreatorAnalytics::Churn
           .count
           .each { |d, c| new_by_day[d.to_date] = c }
 
-      churned = subs.where(deactivated_at: since.beginning_of_day..to.end_of_day)
-                    .where("created_at <= ?", to.end_of_day)
-                    .where("created_at <= deactivated_at")
+      churned = subs.where("created_at <= ?", @end_date)
+                    .where("deactivated_at IS NULL OR deactivated_at >= ?", earliest_date)
+                    .where(deactivated_at: since.beginning_of_day..to.end_of_day)
                     .includes(last_payment_option: :price)
       churned.find_each do |s|
         d = s.deactivated_at.to_date

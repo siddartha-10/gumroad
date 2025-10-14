@@ -10,7 +10,7 @@ class ChurnPresenter
       has_subscription_products: has_subscription_products?,
       aggregate_options: aggregate_options_props,
       products: subscription_products.map do |product|
-        { id: product.external_id, alive: product.alive?, unique_permalink: product.unique_permalink, name: product.name }
+        { id: product.unique_permalink, alive: product.alive?, unique_permalink: product.unique_permalink, name: product.name }
       end
     }
   end

@@ -23,7 +23,7 @@ class CreatorAnalytics::DateRangeValidator
 
     def window_not_exceed_max
       return if start_date.blank? || end_date.blank?
-      days = (end_date - start_date).to_i + 1
-      errors.add(:base, "date range cannot exceed #{max_window_days} days") if days > max_window_days
+      days = (end_date - start_date).to_i
+      errors.add(:base, "date range cannot exceed #{max_window_days} days") if days >= max_window_days
     end
 end

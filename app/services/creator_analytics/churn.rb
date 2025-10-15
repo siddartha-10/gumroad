@@ -16,7 +16,7 @@ class CreatorAnalytics::Churn
     },
   }.freeze
 
-  WINDOW = 31
+  WINDOW = 30
   CACHE_DAYS = 180
 
   validates :start_date, :end_date, presence: true

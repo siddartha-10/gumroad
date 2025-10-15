@@ -59,6 +59,15 @@ RSpec.describe Analytics::ChurnController, type: :controller do
         expect(response).to have_http_status(:success)
       end
 
+      it "handles empty product_ids (no products selected)" do
+        get :index, params: {
+          start_time: 29.days.ago.to_date.to_s,
+          end_time: Date.current.to_s,
+          product_ids: []
+        }
+        expect(response).to have_http_status(:success)
+      end
+
       it "handles date range exceeding 30 days" do
         get :index, params: {
           start_time: 40.days.ago.to_date.to_s,

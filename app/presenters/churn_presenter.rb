@@ -19,7 +19,7 @@ class ChurnPresenter
   def fetch_data_for_inertia(params)
     aggregate_by = normalize_aggregate_by(params[:aggregate_by])
 
-    raw_data = CreatorAnalytics::Churn.new(
+    churn_data = CreatorAnalytics::Churn.new(
       seller: seller,
       start_date: params[:start_date],
       end_date: params[:end_date],
@@ -27,7 +27,7 @@ class ChurnPresenter
       product_ids: params[:product_ids]
     ).payload
 
-    serialize(data: raw_data, aggregate_by: aggregate_by)
+    serialize(data: churn_data, aggregate_by: aggregate_by)
   rescue ActiveModel::ValidationError => e
     { errors: { base: [e.message] } }
   end

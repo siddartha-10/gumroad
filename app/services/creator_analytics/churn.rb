@@ -74,11 +74,12 @@ class CreatorAnalytics::Churn
     def daily_points(series)
       points = []
       (@start_date..@end_date).each do |date|
+        window_start = date - (WINDOW - 1).days
         points << {
           date: date.to_s,
           customer_churn_rate: churn_rate_for_day(series, date),
-          churned_subscribers: window_sum(series[:churn_by_day], date, WINDOW),
-          churned_mrr_cents: window_sum(series[:churn_mrr_by_day], date, WINDOW)
+          churned_subscribers: sum_hash_for_range(series[:churn_by_day], window_start, date),
+          churned_mrr_cents: sum_hash_for_range(series[:churn_mrr_by_day], window_start, date)
         }
       end
       points
@@ -190,27 +191,17 @@ class CreatorAnalytics::Churn
     def churn_rate_for_day(series, date)
       base_day = date - (WINDOW - 1).days
       base = active_at_start_of(series, base_day)
-      new_30 = window_sum(series[:new_by_day], date, WINDOW)
-      churn_30 = window_sum(series[:churn_by_day], date, WINDOW)
-      denom = base + new_30
-      return 0.0 if denom <= 0
-      ((churn_30.to_f / denom) * 100).round(2)
-    end
-
-    def window_sum(hash, end_day, window)
-      start_day = end_day - (window - 1).days
-      sum = 0
-      (start_day..end_day).each { |d| sum += hash[d] }
-      sum
+      new_30 = sum_hash_for_range(series[:new_by_day], date - (WINDOW - 1).days, date)
+      churn_30 = sum_hash_for_range(series[:churn_by_day], date - (WINDOW - 1).days, date)
+      calculate_churn_rate(churn_30, base, new_30)
     end
 
     def totals_for_range(series, from, to)
-      churned_subscribers = range_sum(series[:churn_by_day], from, to)
-      churned_mrr_cents = range_sum(series[:churn_mrr_by_day], from, to)
-      new_in_range = range_sum(series[:new_by_day], from, to)
+      churned_subscribers = sum_hash_for_range(series[:churn_by_day], from, to)
+      churned_mrr_cents = sum_hash_for_range(series[:churn_mrr_by_day], from, to)
+      new_in_range = sum_hash_for_range(series[:new_by_day], from, to)
       base_at_start = active_at_start_of(series, from)
-      denom = base_at_start + new_in_range
-      rate = denom > 0 ? ((churned_subscribers.to_f / denom) * 100).round(2) : 0.0
+      rate = calculate_churn_rate(churned_subscribers, base_at_start, new_in_range)
       {
         customer_churn_rate: rate,
         churned_subscribers: churned_subscribers,
@@ -226,10 +217,18 @@ class CreatorAnalytics::Churn
       totals_for_range(series, last_start, last_end)
     end
 
-    def range_sum(hash, from, to)
+    # Helper method to sum hash values for a date range
+    def sum_hash_for_range(hash, from, to)
       sum = 0
       (from..to).each { |d| sum += hash[d] }
       sum
+    end
+
+    # Helper method to calculate churn rate percentage
+    def calculate_churn_rate(churned, base, new_subscriptions)
+      denom = base + new_subscriptions
+      return 0.0 if denom <= 0
+      ((churned.to_f / denom) * 100).round(2)
     end
 
     def active_at_start_of(series, day)

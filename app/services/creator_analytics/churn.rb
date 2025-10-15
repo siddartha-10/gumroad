@@ -16,7 +16,7 @@ class CreatorAnalytics::Churn
     },
   }.freeze
 
-  WINDOW = 30
+  WINDOW = 31
   CACHE_DAYS = 180
 
   validates :start_date, :end_date, presence: true
@@ -91,7 +91,7 @@ class CreatorAnalytics::Churn
       while month_cursor <= last_month_start
         period_start = [month_cursor, @start_date].max
         period_end = [month_cursor.end_of_month.to_date, @end_date].min
-        metrics = period_totals(series, period_start, period_end)
+        metrics = totals_for_range(series, period_start, period_end)
         points << {
           date: Date.new(month_cursor.year, month_cursor.month, 1).to_s,
           customer_churn_rate: metrics[:customer_churn_rate],
@@ -176,21 +176,6 @@ class CreatorAnalytics::Churn
         active_by_day[d] = running
       end
 
-      cum_new = {}
-      cum_churn = {}
-      cum_mrr = {}
-      sum_new = 0
-      sum_churn = 0
-      sum_mrr = 0
-      (since..to).each do |d|
-        sum_new += new_by_day[d]
-        sum_churn += churn_by_day[d]
-        sum_mrr += churn_mrr_by_day[d]
-        cum_new[d] = sum_new
-        cum_churn[d] = sum_churn
-        cum_mrr[d] = sum_mrr
-      end
-
       {
         since: since,
         to: to,
@@ -198,10 +183,7 @@ class CreatorAnalytics::Churn
         new_by_day: new_by_day,
         churn_by_day: churn_by_day,
         churn_mrr_by_day: churn_mrr_by_day,
-        active_by_day: active_by_day,
-        cum_new: cum_new,
-        cum_churn: cum_churn,
-        cum_mrr: cum_mrr
+        active_by_day: active_by_day
       }
     end
 
@@ -223,20 +205,6 @@ class CreatorAnalytics::Churn
     end
 
     def totals_for_range(series, from, to)
-      churned_subscribers = range_sum(series[:churn_by_day], from, to)
-      churned_mrr_cents = range_sum(series[:churn_mrr_by_day], from, to)
-      new_in_range = range_sum(series[:new_by_day], from, to)
-      base_at_start = active_at_start_of(series, from)
-      denom = base_at_start + new_in_range
-      rate = denom > 0 ? ((churned_subscribers.to_f / denom) * 100).round(2) : 0.0
-      {
-        customer_churn_rate: rate,
-        churned_subscribers: churned_subscribers,
-        churned_mrr_cents: churned_mrr_cents
-      }
-    end
-
-    def period_totals(series, from, to)
       churned_subscribers = range_sum(series[:churn_by_day], from, to)
       churned_mrr_cents = range_sum(series[:churn_mrr_by_day], from, to)
       new_in_range = range_sum(series[:new_by_day], from, to)

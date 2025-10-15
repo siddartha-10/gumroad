@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
 class AnalyticsController < Sellers::BaseController
-  before_action :set_time_range, only: %i[data_by_date data_by_state data_by_referral churn_data]
+  before_action :set_time_range, only: %i[data_by_date data_by_state data_by_referral]
 
   after_action :set_dashboard_preference_to_sales, only: :index
-  before_action :check_payment_details, only: [:index, :churn]
+  before_action :check_payment_details, only: [:index]
 
-  layout "inertia", only: [:index, :churn]
+  layout "inertia", only: [:index]
 
   def index
     authorize :analytics
@@ -49,41 +49,6 @@ class AnalyticsController < Sellers::BaseController
       data = CreatorAnalytics::CachingProxy.new(current_seller).data_for_dates(@start_date, @end_date, by: :referral)
     end
     render json: data
-  end
-
-  def churn
-    authorize :churn
-
-    @churn_props = ChurnPresenter.new(seller: current_seller).page_props
-    LargeSeller.create_if_warranted(current_seller)
-
-    render inertia: "Churn/Index", props: { churn_props: @churn_props }
-  end
-
-  def churn_data
-    authorize :churn
-
-    # Enforce maximum window size for churn analytics
-    max_window_days = CreatorAnalytics::Churn::WINDOW
-    days = (@end_date - @start_date).to_i
-    if days >= max_window_days
-      render json: {
-        errors: { base: ["Date range cannot exceed #{max_window_days} days"] }
-      }, status: :unprocessable_entity and return
-    end
-
-    aggregate_by = CreatorAnalytics::Churn::AGGREGATE_OPTIONS.key?(params[:aggregate_by]) ? params[:aggregate_by] : CreatorAnalytics::Churn::AGGREGATE_BY_DAY
-
-    raw = CreatorAnalytics::Churn.new(
-      seller: current_seller,
-      start_date: @start_date,
-      end_date: @end_date,
-      aggregate_by: aggregate_by,
-      product_ids: params[:product_ids]
-    ).payload
-
-    presenter = ChurnPresenter.new(seller: current_seller)
-    render json: presenter.serialize(data: raw, aggregate_by: aggregate_by)
   end
 
   protected

@@ -2,6 +2,7 @@
 
 class CreatorAnalytics::Churn
   include ActiveModel::Validations
+
   AGGREGATE_BY_DAY = "day"
   AGGREGATE_BY_MONTH = "month"
   AGGREGATE_OPTIONS = {
@@ -18,6 +19,12 @@ class CreatorAnalytics::Churn
   WINDOW = 30
   CACHE_DAYS = 180
 
+  validates :start_date, :end_date, presence: true
+  validate :end_not_before_start
+  validate :window_not_exceed_max
+
+  attr_reader :start_date, :end_date
+
   def initialize(seller:, start_date:, end_date:, aggregate_by: AGGREGATE_BY_DAY, product_ids: nil)
     @seller = seller
     @start_date = start_date.to_date
@@ -27,7 +34,7 @@ class CreatorAnalytics::Churn
   end
 
   def payload
-    validate_range!
+    validate!
     series = daily_series
 
     data_points = if @aggregate_by == AGGREGATE_BY_MONTH
@@ -53,24 +60,6 @@ class CreatorAnalytics::Churn
   end
 
   private
-    # validations
-    validates :start_date, :end_date, presence: true
-    validate :end_not_before_start
-    validate :window_not_exceed_max
-
-    def start_date
-      @start_date
-    end
-
-    def end_date
-      @end_date
-    end
-
-    def validate_range!
-      return true if valid?
-      raise ArgumentError, errors.full_messages.to_sentence
-    end
-
     def end_not_before_start
       return if @start_date.blank? || @end_date.blank?
       errors.add(:end_date, "must be on or after start_date") if @end_date < @start_date
@@ -78,8 +67,8 @@ class CreatorAnalytics::Churn
 
     def window_not_exceed_max
       return if @start_date.blank? || @end_date.blank?
-      days = (@end_date - @start_date).to_i
-      errors.add(:base, "date range cannot exceed #{WINDOW} days") if days >= WINDOW
+      days = (@end_date - @start_date).to_i + 1
+      errors.add(:base, "date range cannot exceed #{WINDOW} days") if days > WINDOW
     end
 
     def daily_points(series)
@@ -129,7 +118,8 @@ class CreatorAnalytics::Churn
     end
 
     def cache_key(since, to)
-      "seller_daily_churn_metrics:#{@seller.id}:v1:#{since}:#{to}"
+      product_key = @product_external_ids&.sort&.join(",") || "all"
+      "seller_daily_churn_metrics:#{@seller.id}:v1:#{since}:#{to}:#{product_key}"
     end
 
     def base_subscription_scope

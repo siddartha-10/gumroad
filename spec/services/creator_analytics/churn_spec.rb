@@ -108,14 +108,14 @@ RSpec.describe CreatorAnalytics::Churn do
       start_date = Date.current - 40.days
       end_date = Date.current
       service = described_class.new(seller: seller, start_date:, end_date:)
-      expect { service.payload }.to raise_error(ArgumentError)
+      expect { service.payload }.to raise_error(ActiveModel::ValidationError)
     end
 
     it "raises when end date is before start date" do
       start_date = Date.current
       end_date = Date.current - 1
       service = described_class.new(seller: seller, start_date:, end_date:)
-      expect { service.payload }.to raise_error(ArgumentError)
+      expect { service.payload }.to raise_error(ActiveModel::ValidationError)
     end
 
     it "excludes subscriptions created after end_date even if deactivated within series window" do

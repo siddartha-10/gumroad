@@ -1,8 +1,8 @@
+import { router, usePage } from "@inertiajs/react";
 import { lightFormat } from "date-fns";
 import * as React from "react";
 
-import { fetchChurnData, type ChurnData } from "$app/data/churn";
-import { AbortError } from "$app/utils/request";
+import type { ChurnData } from "$app/data/churn";
 
 import { AnalyticsLayout } from "$app/components/Analytics/AnalyticsLayout";
 import { ProductsPopover } from "$app/components/Analytics/ProductsPopover";
@@ -11,7 +11,6 @@ import { ChurnChart } from "$app/components/Churn/ChurnChart";
 import { ChurnQuickStats } from "$app/components/Churn/ChurnQuickStats";
 import { DateRangePicker } from "$app/components/DateRangePicker";
 import { Progress } from "$app/components/Progress";
-import { showAlert } from "$app/components/server-components/Alert";
 
 import placeholder from "$assets/images/placeholders/sales.png";
 
@@ -22,9 +21,11 @@ export type ChurnProps = {
 
 const Churn = ({ has_subscription_products, products: initialProducts }: ChurnProps) => {
   const dateRange = useAnalyticsDateRange();
-  const [data, setData] = React.useState<ChurnData | null>(null);
   const [aggregateBy, setAggregateBy] = React.useState<"day" | "month">("day");
   const [products, setProducts] = React.useState(initialProducts.map((p) => ({ ...p, selected: p.alive })));
+  const [isLoading, setIsLoading] = React.useState(false);
+
+  const { churn_data } = usePage<{ churn_data?: ChurnData }>().props;
 
   const startTime = lightFormat(dateRange.from, "yyyy-MM-dd");
   const endTime = lightFormat(dateRange.to, "yyyy-MM-dd");
@@ -32,32 +33,24 @@ const Churn = ({ has_subscription_products, products: initialProducts }: ChurnPr
   const hasContent = has_subscription_products;
   const selectedProductIds = React.useMemo(() => products.filter((p) => p.selected).map((p) => p.id), [products]);
 
-  const activeRequest = React.useRef<AbortController | null>(null);
-
   React.useEffect(() => {
-    const loadData = async () => {
-      if (!hasContent) return;
+    if (!hasContent) return;
 
-      try {
-        if (activeRequest.current) {
-          activeRequest.current.abort();
-        }
+    setIsLoading(true);
 
-        setData(null);
-
-        const request = fetchChurnData({ startTime, endTime, aggregateBy, productIds: selectedProductIds });
-        activeRequest.current = request.abort;
-
-        const result = await request.response;
-        setData(result);
-        activeRequest.current = null;
-      } catch (e) {
-        if (e instanceof AbortError) return;
-        showAlert("Sorry, something went wrong. Please try again.", "error");
-      }
-    };
-
-    void loadData();
+    // Use Inertia's partial reload to fetch only churn_data
+    router.reload({
+      only: ["churn_data"],
+      data: {
+        start_time: startTime,
+        end_time: endTime,
+        aggregate_by: aggregateBy,
+        ...(selectedProductIds.length > 0 ? { product_ids: selectedProductIds } : {}),
+      },
+      onFinish: () => {
+        setIsLoading(false);
+      },
+    });
   }, [startTime, endTime, aggregateBy, selectedProductIds, hasContent]);
 
   return (
@@ -86,9 +79,9 @@ const Churn = ({ has_subscription_products, products: initialProducts }: ChurnPr
     >
       {hasContent ? (
         <div className="space-y-8 p-4 md:p-8">
-          <ChurnQuickStats metrics={data?.metrics} />
-          {data ? (
-            <ChurnChart data={data.daily_data} aggregateBy={aggregateBy} />
+          <ChurnQuickStats metrics={churn_data?.metrics} />
+          {churn_data && !isLoading ? (
+            <ChurnChart data={churn_data.daily_data} aggregateBy={aggregateBy} />
           ) : (
             <div className="input">
               <Progress width="1em" />

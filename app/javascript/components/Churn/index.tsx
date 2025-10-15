@@ -8,8 +8,8 @@ import { AnalyticsLayout } from "$app/components/Analytics/AnalyticsLayout";
 import { ProductsPopover } from "$app/components/Analytics/ProductsPopover";
 import { useAnalyticsDateRange } from "$app/components/Analytics/useAnalyticsDateRange";
 import { ChurnChart } from "$app/components/Churn/ChurnChart";
-import { ChurnDateRangePicker } from "$app/components/Churn/ChurnDateRangePicker";
 import { ChurnQuickStats } from "$app/components/Churn/ChurnQuickStats";
+import { DateRangePicker } from "$app/components/DateRangePicker";
 import { Progress } from "$app/components/Progress";
 
 import placeholder from "$assets/images/placeholders/sales.png";
@@ -72,7 +72,7 @@ const Churn = ({ has_subscription_products, products: initialProducts }: ChurnPr
               <option value="month">Monthly</option>
             </select>
             <ProductsPopover products={products} setProducts={setProducts} />
-            <ChurnDateRangePicker {...dateRange} />
+            <DateRangePicker {...dateRange} />
           </>
         ) : null
       }

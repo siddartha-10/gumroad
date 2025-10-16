@@ -17,24 +17,42 @@ export const ChurnDateRangePicker = ({
   setTo: (to: Date) => void;
 }) => {
   const { showAlert } = useClientAlert();
+  const pendingRef = React.useRef<{ from?: Date; to?: Date }>({});
+  const timeoutRef = React.useRef<number | null>(null);
 
-  const validateAndSet = (newFrom: Date, newTo: Date) => {
-    const days = Math.ceil((newTo.getTime() - newFrom.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-    if (days <= MAX_DAYS) {
-      setFrom(newFrom);
-      setTo(newTo);
-    } else {
+  const validateAndApply = React.useCallback(() => {
+    const finalFrom = pendingRef.current.from ?? from;
+    const finalTo = pendingRef.current.to ?? to;
+    pendingRef.current = {};
+
+    const days = Math.ceil((finalTo.getTime() - finalFrom.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+    if (finalFrom > finalTo) {
+      showAlert("Invalid date range: start date must be before end date.", "error");
+    } else if (days > MAX_DAYS) {
       showAlert(`Date range cannot exceed ${MAX_DAYS} days. Selected: ${days} days.`, "error");
+    } else {
+      setFrom(finalFrom);
+      setTo(finalTo);
     }
-  };
+  }, [from, to, setFrom, setTo, showAlert]);
 
-  const handleSetFrom = (date: Date) => {
-    validateAndSet(date, to);
-  };
+  const scheduleValidation = React.useCallback(() => {
+    if (timeoutRef.current !== null) {
+      window.clearTimeout(timeoutRef.current);
+    }
+    timeoutRef.current = window.setTimeout(validateAndApply, 0);
+  }, [validateAndApply]);
 
-  const handleSetTo = (date: Date) => {
-    validateAndSet(from, date);
-  };
+  const handleSetFrom = React.useCallback((newFrom: Date) => {
+    pendingRef.current.from = newFrom;
+    scheduleValidation();
+  }, [scheduleValidation]);
+
+  const handleSetTo = React.useCallback((newTo: Date) => {
+    pendingRef.current.to = newTo;
+    scheduleValidation();
+  }, [scheduleValidation]);
 
   return (
     <DateRangePicker

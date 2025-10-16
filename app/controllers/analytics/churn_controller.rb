@@ -27,15 +27,13 @@ class Analytics::ChurnController < Sellers::BaseController
 
   protected
     def fetch_data_params
-      product_ids = if params[:product_ids].present?
-                      # Handle both Hash and ActionController::Parameters
-                      ids = if params[:product_ids].is_a?(ActionController::Parameters) || params[:product_ids].is_a?(Hash)
-                              # Convert to hash, get values, flatten, and ensure plain strings
-                              params[:product_ids].to_unsafe_h.values.flatten.map(&:to_s)
-                            else
-                              params[:product_ids]
-                            end
-                      Array(ids).map(&:to_s).compact.presence
+      # Normalize product_ids: missing => [], empty => [], non-empty => array of strings
+      product_ids = if params.key?(:product_ids)
+                      ids = params[:product_ids]
+                      ids = ids.to_unsafe_h.values.flatten if ids.is_a?(ActionController::Parameters) || ids.is_a?(Hash)
+                      Array(ids).map(&:to_s).compact
+                    else
+                      []
                     end
       {
         start_date: @start_date,

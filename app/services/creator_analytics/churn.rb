@@ -30,7 +30,8 @@ class CreatorAnalytics::Churn
     @start_date = start_date.to_date
     @end_date = end_date.to_date
     @aggregate_by = aggregate_by
-    @product_external_ids = Array(product_ids).presence
+    # Preserve distinction between nil (all products) and [] (no products)
+    @product_external_ids = product_ids.nil? ? nil : Array(product_ids).map(&:to_s)
   end
 
   def payload
@@ -119,15 +120,25 @@ class CreatorAnalytics::Churn
     end
 
     def cache_key(since, to)
-      product_key = @product_external_ids&.sort&.join(",") || "all"
+      product_key = if @product_external_ids.nil?
+                      "all"
+                    elsif @product_external_ids.empty?
+                      "none"
+                    else
+                      @product_external_ids.sort.join(",")
+                    end
       "seller_daily_churn_metrics:#{@seller.id}:v1:#{since}:#{to}:#{product_key}"
     end
 
     def base_subscription_scope
       subs = Subscription.where(seller: @seller)
+      # If explicitly no products selected, return an empty scope
+      return subs.none if @product_external_ids.is_a?(Array) && @product_external_ids.empty?
+
       if @product_external_ids
         link_ids = Link.where(user: @seller, unique_permalink: @product_external_ids).pluck(:id)
-        subs = subs.where(link_id: link_ids) if link_ids.any?
+        return subs.none if link_ids.empty?
+        subs = subs.where(link_id: link_ids)
       end
       subs
     end

@@ -38,7 +38,7 @@ const Churn = ({ has_subscription_products, products: initialProducts }: ChurnPr
     // Normalize dates to start of day to avoid timezone/time-of-day issues
     const normalizedFrom = new Date(dateRange.from.getFullYear(), dateRange.from.getMonth(), dateRange.from.getDate());
     const normalizedTo = new Date(dateRange.to.getFullYear(), dateRange.to.getMonth(), dateRange.to.getDate());
-    const days = Math.round((normalizedTo.getTime() - normalizedFrom.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    const days = Math.round((normalizedTo.getTime() - normalizedFrom.getTime()) / (1000 * 60 * 60 * 24));
     return dateRange.from <= dateRange.to && days <= 30;
   }, [dateRange.from, dateRange.to]);
 
@@ -94,7 +94,7 @@ const Churn = ({ has_subscription_products, products: initialProducts }: ChurnPr
       {hasContent ? (
         <div className="space-y-8 p-4 md:p-8">
           <ChurnQuickStats metrics={churn_data?.metrics} />
-          {churn_data && !isLoading ? (
+          {churn_data?.daily_data && !isLoading ? (
             <ChurnChart data={churn_data.daily_data} aggregateBy={aggregateBy} />
           ) : (
             <div className="input">

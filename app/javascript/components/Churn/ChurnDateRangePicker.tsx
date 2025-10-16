@@ -28,7 +28,7 @@ export const ChurnDateRangePicker = ({
     // Normalize dates to start of day to avoid timezone/time-of-day issues
     const normalizedFrom = new Date(finalFrom.getFullYear(), finalFrom.getMonth(), finalFrom.getDate());
     const normalizedTo = new Date(finalTo.getFullYear(), finalTo.getMonth(), finalTo.getDate());
-    const days = Math.round((normalizedTo.getTime() - normalizedFrom.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    const days = Math.round((normalizedTo.getTime() - normalizedFrom.getTime()) / (1000 * 60 * 60 * 24));
 
     if (finalFrom > finalTo) {
       showAlert("Invalid date range: start date must be before end date.", "error");

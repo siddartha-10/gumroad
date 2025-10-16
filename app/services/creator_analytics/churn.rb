@@ -68,7 +68,7 @@ class CreatorAnalytics::Churn
 
     def window_not_exceed_max
       return if @start_date.blank? || @end_date.blank?
-      days = (@end_date - @start_date).to_i + 1
+      days = (@end_date - @start_date).to_i
       errors.add(:base, "date range cannot exceed #{WINDOW} days") if days > WINDOW
     end
 

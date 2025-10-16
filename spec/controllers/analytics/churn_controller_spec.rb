@@ -32,6 +32,12 @@ RSpec.describe Analytics::ChurnController, type: :controller do
         expect(response).to have_http_status(:success)
       end
 
+      it "includes churn_data in Inertia props when date range provided" do
+        get :index, params: { start_time: 29.days.ago.to_date.to_s, end_time: Date.current.to_s }
+        expect(inertia.props[:churn_data]).to be_present
+        expect(inertia.props[:churn_data]).to include(:start_date, :end_date, :metrics, :daily_data)
+      end
+
       it "handles monthly aggregation parameter" do
         get :index, params: {
           start_time: 29.days.ago.to_date.to_s,

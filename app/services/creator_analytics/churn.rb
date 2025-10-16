@@ -147,7 +147,7 @@ class CreatorAnalytics::Churn
       new_by_day = Hash.new(0)
       churn_by_day = Hash.new(0)
       churn_mrr_by_day = Hash.new(0)
-      earliest_date = since - 30.days
+      earliest_date = since - (WINDOW - 1).days
 
       subs = base_subscription_scope
 

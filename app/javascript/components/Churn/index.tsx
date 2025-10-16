@@ -33,8 +33,17 @@ const Churn = ({ has_subscription_products, products: initialProducts }: ChurnPr
   const hasContent = has_subscription_products;
   const selectedProductIds = React.useMemo(() => products.filter((p) => p.selected).map((p) => p.id), [products]);
 
+  // Validate date range before making backend call
+  const isValidDateRange = React.useMemo(() => {
+    // Normalize dates to start of day to avoid timezone/time-of-day issues
+    const normalizedFrom = new Date(dateRange.from.getFullYear(), dateRange.from.getMonth(), dateRange.from.getDate());
+    const normalizedTo = new Date(dateRange.to.getFullYear(), dateRange.to.getMonth(), dateRange.to.getDate());
+    const days = Math.round((normalizedTo.getTime() - normalizedFrom.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    return dateRange.from <= dateRange.to && days <= 30;
+  }, [dateRange.from, dateRange.to]);
+
   React.useEffect(() => {
-    if (!hasContent) return;
+    if (!hasContent || !isValidDateRange) return;
 
     setIsLoading(true);
 
@@ -56,7 +65,7 @@ const Churn = ({ has_subscription_products, products: initialProducts }: ChurnPr
         setIsLoading(false);
       },
     });
-  }, [startTime, endTime, aggregateBy, selectedProductIds, hasContent]);
+  }, [startTime, endTime, aggregateBy, selectedProductIds, hasContent, isValidDateRange]);
 
   return (
     <AnalyticsLayout

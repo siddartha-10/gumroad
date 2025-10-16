@@ -76,7 +76,7 @@ RSpec.describe Analytics::ChurnController, type: :controller do
 
       it "handles date range exceeding 30 days" do
         get :index, params: {
-          start_time: 40.days.ago.to_date.to_s,
+          start_time: 31.days.ago.to_date.to_s,
           end_time: Date.current.to_s
         }
         expect(response).to have_http_status(:success)

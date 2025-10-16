@@ -105,7 +105,7 @@ RSpec.describe CreatorAnalytics::Churn do
 
   describe "validations and exclusions" do
     it "raises when date window exceeds 30 days" do
-      start_date = Date.current - 40.days
+      start_date = Date.current - 31.days
       end_date = Date.current
       service = described_class.new(seller: seller, start_date:, end_date:)
       expect { service.payload }.to raise_error(ActiveModel::ValidationError)

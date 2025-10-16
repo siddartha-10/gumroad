@@ -3,7 +3,7 @@ import * as React from "react";
 import { useClientAlert } from "$app/components/ClientAlertProvider";
 import { DateRangePicker } from "$app/components/DateRangePicker";
 
-const MAX_DAYS = 31;
+const MAX_DAYS = 30;
 
 export const ChurnDateRangePicker = ({
   from,
@@ -25,7 +25,10 @@ export const ChurnDateRangePicker = ({
     const finalTo = pendingRef.current.to ?? to;
     pendingRef.current = {};
 
-    const days = Math.ceil((finalTo.getTime() - finalFrom.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    // Normalize dates to start of day to avoid timezone/time-of-day issues
+    const normalizedFrom = new Date(finalFrom.getFullYear(), finalFrom.getMonth(), finalFrom.getDate());
+    const normalizedTo = new Date(finalTo.getFullYear(), finalTo.getMonth(), finalTo.getDate());
+    const days = Math.round((normalizedTo.getTime() - normalizedFrom.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
     if (finalFrom > finalTo) {
       showAlert("Invalid date range: start date must be before end date.", "error");

@@ -47,19 +47,13 @@ const Churn = ({ has_subscription_products, products: initialProducts }: ChurnPr
 
     setIsLoading(true);
 
-    // Use Inertia's partial reload to fetch only churn_data
-    // Send special marker "none" when no products are selected to distinguish from "not provided"
-    const productIdsData = selectedProductIds.length > 0
-      ? { product_ids: selectedProductIds }
-      : { product_ids: ["none"] };
-
     router.reload({
       only: ["churn_data"],
       data: {
         start_time: startTime,
         end_time: endTime,
         aggregate_by: aggregateBy,
-        ...productIdsData,
+        product_ids: selectedProductIds,
       },
       onFinish: () => {
         setIsLoading(false);

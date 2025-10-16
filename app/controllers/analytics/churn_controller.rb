@@ -27,11 +27,11 @@ class Analytics::ChurnController < Sellers::BaseController
 
   protected
     def fetch_data_params
-      # Normalize product_ids: missing => nil (all products), present but empty => [] (no products), non-empty => array of strings
       product_ids = if params.key?(:product_ids)
                       ids = params[:product_ids]
                       ids = ids.to_unsafe_h.values.flatten if ids.is_a?(ActionController::Parameters) || ids.is_a?(Hash)
-                      Array(ids).map(&:to_s).compact
+                      ids = Array(ids).map(&:to_s).compact
+                      ids.empty? ? nil : ids
                     else
                       nil
                     end
